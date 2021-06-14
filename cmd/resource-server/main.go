@@ -11,6 +11,8 @@ import (
 	"syscall"
 )
 
+const authenticatedUser = "authenticated-user"
+
 func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -19,6 +21,18 @@ func main() {
 		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			switch req.URL.Path {
 			case "/resource":
+				c, err := req.Cookie("user")
+				if err != nil {
+					log.Printf("error: %s", err)
+					rw.WriteHeader(http.StatusUnauthorized)
+					fmt.Fprintln(rw, "Unauthorized")
+					return
+				}
+				if c.Value != authenticatedUser {
+					rw.WriteHeader(http.StatusUnauthorized)
+					fmt.Fprintln(rw, "Unauthorized")
+					return
+				}
 				rw.WriteHeader(http.StatusOK)
 				fmt.Fprintln(rw, "resouce")
 			}
