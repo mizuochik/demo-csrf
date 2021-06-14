@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
+	"sync/atomic"
 	"syscall"
 )
 
@@ -16,6 +20,10 @@ const authenticatedUser = "authenticated-user"
 func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	resource := &atomic.Value{}
+	resource.Store("null")
+
 	s := &http.Server{
 		Addr: net.JoinHostPort("", "8080"),
 		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -40,8 +48,17 @@ func main() {
 					fmt.Fprintln(rw, "Unauthorized")
 					return
 				}
-				rw.WriteHeader(http.StatusOK)
-				fmt.Fprintln(rw, "resouce")
+				switch req.Method {
+				case http.MethodGet:
+					rw.WriteHeader(http.StatusOK)
+					fmt.Fprintln(rw, resource.Load().(string))
+				case http.MethodPut:
+					rw.WriteHeader(http.StatusOK)
+					b := &strings.Builder{}
+					io.Copy(b, req.Body)
+					resource.Store(b.String())
+					fmt.Fprintln(rw, resource.Load().(string))
+				}
 			}
 		}),
 	}
