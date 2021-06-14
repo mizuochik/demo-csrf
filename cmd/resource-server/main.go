@@ -20,6 +20,13 @@ func main() {
 		Addr: net.JoinHostPort("", "8080"),
 		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			switch req.URL.Path {
+			case "/login":
+				http.SetCookie(rw, &http.Cookie{
+					Name:  "user",
+					Value: authenticatedUser,
+				})
+				rw.WriteHeader(http.StatusOK)
+				fmt.Fprintln(rw, "Logged in")
 			case "/resource":
 				c, err := req.Cookie("user")
 				if err != nil {
