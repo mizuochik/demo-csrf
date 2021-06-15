@@ -3,13 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"sync/atomic"
 	"syscall"
 )
@@ -26,6 +24,7 @@ func main() {
 	s := &http.Server{
 		Addr: net.JoinHostPort("", "8080"),
 		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			log.Printf("< %s %s", req.Method, req.URL.Path)
 			switch req.URL.Path {
 			case "/login":
 				http.SetCookie(rw, &http.Cookie{
@@ -51,11 +50,13 @@ func main() {
 				case http.MethodGet:
 					rw.WriteHeader(http.StatusOK)
 					fmt.Fprintln(rw, resource.Load().(string))
-				case http.MethodPost, http.MethodPut:
+				case http.MethodPost:
+					if err := req.ParseForm(); err != nil {
+						rw.WriteHeader(http.StatusBadRequest)
+						return
+					}
 					rw.WriteHeader(http.StatusOK)
-					b := &strings.Builder{}
-					io.Copy(b, req.Body)
-					resource.Store(b.String())
+					resource.Store(req.FormValue("body"))
 					fmt.Fprintln(rw, resource.Load().(string))
 				}
 			}
