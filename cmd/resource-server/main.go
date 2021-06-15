@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -52,7 +51,7 @@ func main() {
 				case http.MethodGet:
 					rw.WriteHeader(http.StatusOK)
 					fmt.Fprintln(rw, resource.Load().(string))
-				case http.MethodPut:
+				case http.MethodPost, http.MethodPut:
 					rw.WriteHeader(http.StatusOK)
 					b := &strings.Builder{}
 					io.Copy(b, req.Body)
